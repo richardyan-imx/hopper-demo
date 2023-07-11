@@ -1,58 +1,90 @@
 <script lang="ts">
-	import Counter from '$lib/Counter.svelte';
-	import Logo from '$lib/Logo.svelte';
-	import { browser } from '$app/environment';
+	import { login } from '../auth';
+	import { onDestroy } from 'svelte';
+	import { providerStore } from '../store';
 
-	let desktop: string;
+	let isLoggedIn: boolean = false;
+	let address: string | null = null;
+	let jsonData: string | null = null;
 
-	if (window.electron && browser) {
-		window.electron.receive('from-main', (data: any) => {
-			desktop = `Received Message "${data}" from Electron`;
-			console.log(desktop);
-		});
+	function getJsonData(): string | null {
+		for (let i = 0; i < sessionStorage.length; i++) {
+			const key = sessionStorage.key(i);
+			if (key && key.startsWith('oidc.user:https://auth.immutable.com')) {
+				isLoggedIn = true;
+				const fullData = sessionStorage.getItem(key);
+				if (fullData) {
+					const parsedData = JSON.parse(fullData);
+					return JSON.stringify(parsedData.profile, null, 2);
+				}
+				break;
+			}
+		}
+		return null;
 	}
 
-	const agent = window.electron ? 'Electron' : 'Browser';
+	const unsubscribe = providerStore.subscribe(async (provider) => {
+		if (provider) {
+			isLoggedIn = true;
+			jsonData = getJsonData();
+			try {
+				address = await provider.getAddress();
+			} catch (e) {
+				console.error(e);
+			}
+		}
+	});
+
+	onDestroy(() => {
+		unsubscribe();
+	});
 </script>
 
-<main>
-	<Logo />
-
-	<h1>Hello {agent}!</h1>
-
-	<Counter id="0" {agent} />
-
-	{#if desktop}
-		<br />
-		<br />
-		{desktop}
+<div class="container">
+	{#if isLoggedIn}
+		<pre>{@html JSON.stringify(JSON.parse(jsonData), null, 2)}</pre>
+	{:else}
+		<button on:click={login}>
+			Sign In with
+			<img
+				src="https://assets-global.website-files.com/62535c6262b90afd768b9b26/62536a8f8dc259548c11d1a9_immutable-logo.svg"
+				class="logo"
+				alt="IMX logo"
+			/>
+		</button>
 	{/if}
-</main>
+</div>
 
 <style>
-	:root {
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
-			Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	button {
+		color: #0d0d0d;
+		background-image: linear-gradient(137deg, #f191fa, #83e3f0);
+		min-width: 140px;
+		background-color: #0d0d0d;
+		border: 0 #0d0d0d;
+		border-radius: 48px;
+		margin-left: 0;
+		margin-right: 0;
+		padding: 12px 24px;
+		font-weight: 500;
+		text-decoration: none;
+		display: flex;
+		align-items: center;
 	}
-
-	:global(body) {
-		margin: 0;
-		padding: 0;
+	pre {
+		color: white;
 	}
-
-	main {
-		padding: 2em 1em 1em 1em;
-		text-align: center;
-		animation: fade 1s;
-		margin: 0 auto;
+	.container {
+		display: flex;
+		align-items: center;
+		flex-direction: column;
+		justify-content: center;
+		height: 100%;
+		max-width: 80%;
+		margin: auto;
 	}
-
-	@keyframes fade {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+	.logo {
+		max-height: 24pt;
+		margin-left: 8px;
 	}
 </style>

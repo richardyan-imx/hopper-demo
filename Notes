@@ -1,0 +1,5 @@
+1. Rollback @imtbl/sdk to match other project (cheating)
+2. Not cheating: solve each bug on current sdk version
+
+Once that works
+1. In auth.ts, handleLoginCallback(), persist eth address to DynamoDB

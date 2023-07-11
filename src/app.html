@@ -6,6 +6,12 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Sveltekit + Electron</title>
 		%sveltekit.head%
+		<script>
+			/**
+			 * this is a hack for error: global is not defined
+			 */
+			var global = global || window
+	</script>
 	</head>
 	<body>
 		<div id="svelte">%sveltekit.body%</div>
